@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cadence Garden</title>
+<meta name="description" content="Type a sentence and a plant grows from the rhythm of your typing. Pauses become flowers, backspaces become thorns.">
+<meta property="og:title" content="Cadence Garden">
+<meta property="og:description" content="A garden that grows from the rhythm of your typing.">
+<meta name="theme-color" content="#e9eee6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12171a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cadence">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312171a'/%3E%3Cpath d='M32 54V30' stroke='%2378b48a' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M32 38c-10 0-15-6-15-13 9 0 15 5 15 13zM32 32c10 0 15-6 15-13-9 0-15 5-15 13z' fill='%2378b48a'/%3E%3Ccircle cx='32' cy='18' r='6' fill='%23e66fa0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Atkinson+Hyperlegible:wght@400;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a greenhouse bench. Living sky + garden on top, typing tray below, a plant tag beside it. */
+:root {
+  --bg: #e9eee6;
+  --glass: #f6f8f3;
+  --ink: #1f2a22;
+  --muted: #5d6b60;
+  --line: #c9d3c6;
+  --soil: #6b5440;
+  --accent: #4b6bd6;
+  --bloom: #d4487f;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171a; --glass: #1a2125; --ink: #e4ebe3; --muted: #93a197; --line: #2c373a;
+    --soil: #3a2f27; --accent: #8ea6ff; --bloom: #f07aa8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171a; --glass: #1a2125; --ink: #e4ebe3; --muted: #93a197; --line: #2c373a;
+  --soil: #3a2f27; --accent: #8ea6ff; --bloom: #f07aa8; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)); padding-block: max(24px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-bottom, 0px)); display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 8px 0 0; color: var(--muted); max-width: 58ch; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: 500 13px/1 var(--mono); color: var(--ink); background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; cursor: pointer; touch-action: manipulation; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--glass); border-color: var(--accent); }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.garden { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--glass); }
+canvas { display: block; width: 100%; height: clamp(300px, 46vw, 460px); touch-action: manipulation; }
+.clock { position: absolute; top: 10px; left: 12px; font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: rgb(0 0 0 / .28); padding: 6px 9px; border-radius: 999px; pointer-events: none; }
+.bench { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 720px) { .bench { grid-template-columns: 1fr; } }
+.tray { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+textarea { width: 100%; min-height: 92px; resize: vertical; font: 1.15rem/1.5 var(--body); color: var(--ink); background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.pulse { height: 34px; display: flex; align-items: end; gap: 2px; overflow: hidden; }
+.pulse i { display: block; width: 4px; flex: none; border-radius: 2px; background: var(--accent); opacity: .75; }
+.pulse i.long { background: var(--bloom); opacity: 1; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.hint { color: var(--muted); font-size: 13px; min-width: 0; flex: 1 1 220px; }
+.tag { background: var(--glass); border: 1px solid var(--line); border-radius: 4px 14px 14px 4px; padding: 16px 18px; position: relative; min-width: 0; align-self: start; }
+.tag::before { content: ""; position: absolute; left: 10px; top: 16px; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--line); }
+.tag-inner { padding-left: 14px; display: grid; gap: 10px; }
+.tag h2 { font-family: var(--display); font-weight: 400; font-size: 1.35rem; margin: 0; line-height: 1.2; text-wrap: balance; }
+.quote { margin: 0; font-style: italic; overflow-wrap: anywhere; min-height: 1.5em; }
+.quote .caret { display: inline-block; width: 1px; height: 1em; background: var(--accent); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font: 13px/1.5 var(--mono); font-variant-numeric: tabular-nums; }
+dt { color: var(--muted); }
+dd { margin: 0; text-align: right; }
+.tag-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-actions button { padding: 8px 11px; font-size: 12px; }
+.chip { font: 500 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; justify-self: start; }
+.chip.gift { color: var(--bloom); border-color: var(--bloom); }
+.sharebox { display: grid; gap: 6px; }
+.sharebox input { width: 100%; font: 12px/1.4 var(--mono); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.how { color: var(--muted); font-size: 13.5px; max-width: 70ch; margin: 4px 0 0; }
+.how b { color: var(--ink); font-weight: 700; }
+.toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); font: 500 13px/1 var(--mono); padding: 11px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; max-width: calc(100vw - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+footer { color: var(--muted); font-size: 12px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Cadence Garden</h1>
+      <p class="lede">Type a sentence and press Enter. The plant grows from <em>how</em> you typed it: your speed, your hesitations, the gaps between words. Nobody else types the same sentence the same way, so nobody else grows the same plant.</p>
+    </div>
+    <div class="controls">
+      <button id="sound" aria-pressed="false" type="button">Sound off</button>
+      <button id="snap" type="button">Save picture</button>
+      <button id="clear" type="button">Clear garden</button>
+    </div>
+  </header>
+
+  <div class="garden">
+    <canvas id="cv" aria-label="Your garden. Click a plant to read its tag."></canvas>
+    <span class="clock" id="clock"></span>
+  </div>
+
+  <div class="bench">
+    <div class="tray">
+      <label class="eyebrow" for="input">Plant a sentence</label>
+      <textarea id="input" placeholder="What's on your mind right now?" maxlength="160" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
+      <div class="pulse" id="pulse" aria-hidden="true"></div>
+      <div class="row">
+        <span class="hint" id="hint">Bars show the gap before each key. Pink bars become flowers.</span>
+        <button id="plant" class="primary" type="button">Plant it ↵</button>
+      </div>
+      <p class="how"><b>How it grows.</b> Each word is a stem segment. Typing a word faster than your own average bends the stem one way, slower bends it the other. A pause longer than 0.7 s before a word opens a flower there. Overall speed sets the leaf colour, from cool blue-green when you're careful to warm yellow-green when you're flying. Backspaces leave thorns. The sky follows your real clock.</p>
+      <p class="how"><b>Share a plant.</b> Click a plant, then <b>Send this plant</b>. Your friend opens the link and the plant grows in their garden, typed exactly the way you typed it.</p>
+    </div>
+    <aside class="tag" aria-live="polite">
+      <div class="tag-inner" id="tag"></div>
+    </aside>
+  </div>
+  <footer>Your garden is saved on this device only. Up to 20 plants; the oldest makes room for the newest.</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const input = $('input'), pulse = $('pulse'), tagEl = $('tag'), hint = $('hint');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const KEY = 'cadence-garden-v1', MAX = 20;
+
+  // ---------- helpers ----------
+  function rng(seed) { let s = seed >>> 0 || 1; return () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) ^ Math.imul(s ^ (s >>> 13), 3266489909)) >>> 0) / 4294967296; }
+  function hash(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let toastT;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+
+  // ---------- example plants ----------
+  function fake(text, base, jitter, pauses, backs, seed) {
+    const r = rng(seed), gaps = [];
+    for (let i = 0; i < text.length; i++) {
+      let g = base + (r() - .5) * jitter;
+      if (text[i - 1] === ' ' && pauses.includes(text.slice(0, i).split(' ').length)) g += 900 + r() * 600;
+      gaps.push(Math.max(40, Math.round(g)));
+    }
+    gaps[0] = 0;
+    return { text, gaps, backs, t: Date.now() - seed * 3600e3, example: true };
+  }
+  const EXAMPLES = [
+    fake('the kettle is singing again', 150, 90, [3], 0, 3),
+    fake('i should call my sister back tonight', 210, 160, [2, 5, 6], 1, 7),
+    fake('quick brown fox, slow tired dog', 95, 40, [], 0, 11),
+    fake('maybe the answer was never the point', 260, 220, [1, 4, 7], 3, 19),
+    fake('rain on the window', 180, 70, [2], 0, 23),
+  ];
+
+  // ---------- storage ----------
+  let plants;
+  try { plants = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { plants = null; }
+  if (!Array.isArray(plants) || !plants.length) plants = EXAMPLES.slice();
+  plants = plants.filter(valid);
+  plants.forEach(p => p.grow = 1);
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(plants.filter(p => !p.example).map(({ grow, a, box, ...p }) => p))); } catch {} }
+  function valid(p) { return p && typeof p.text === 'string' && p.text.length && p.text.length <= 200 && Array.isArray(p.gaps) && p.gaps.length === p.text.length && p.gaps.every(g => Number.isFinite(g) && g >= 0); }
+
+  // ---------- analysis ----------
+  function analyse(p) {
+    const words = p.text.trim().split(/\s+/).filter(Boolean);
+    const gaps = p.gaps.slice(1);
+    const mean = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 200;
+    let idx = 0; const wt = [], pre = [];
+    for (const w of words) {
+      while (p.text[idx] === ' ') idx++;
+      pre.push(idx > 0 ? (p.gaps[idx] || 0) : 0);
+      const seg = p.gaps.slice(idx + 1, idx + w.length);
+      wt.push(seg.length ? seg.reduce((a, b) => a + b, 0) / seg.length : mean);
+      idx += w.length;
+    }
+    const total = p.gaps.reduce((a, b) => a + b, 0) / 1000;
+    const wpm = total > 0 ? (p.text.length / 5) / (total / 60) : 0;
+    const longest = Math.max(0, ...gaps);
+    const sd = Math.sqrt(gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / Math.max(1, gaps.length));
+    return { words, wt, pre, mean, wpm, longest, steadiness: clamp(1 - sd / (mean || 1), 0, 1), flowers: pre.filter(x => x > 700).length };
+  }
+  function nameFor(a) {
+    const g = ['Hesitant', 'Measured', 'Steady', 'Brisk', 'Headlong'][Math.min(4, Math.floor(a.wpm / 20))];
+    const s = a.flowers >= 3 ? 'Wondering Bloom' : a.flowers ? 'Pausing Lily' : a.steadiness > .6 ? 'Even Fern' : 'Wandering Vine';
+    return `${g} ${s}`;
+  }
+
+  // ---------- sky ----------
+  const SKY = [ // hour, top, bottom
+    [0, '#0a1230', '#1d2a4a'], [5, '#0a1230', '#1d2a4a'], [6.3, '#5b6aa0', '#f2a88a'], [7.5, '#8fbfe6', '#f3e6cf'],
+    [12, '#7fb6e6', '#e2eff2'], [17, '#8fbbe0', '#efe4cc'], [18.8, '#6a5f9c', '#f19a74'], [20.2, '#0f1838', '#2a2c50'], [24, '#0a1230', '#1d2a4a'],
+  ];
+  const hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => { const A = hx(a), B = hx(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+  function skyAt(h) {
+    for (let i = 0; i < SKY.length - 1; i++) {
+      const [h0, t0, b0] = SKY[i], [h1, t1, b1] = SKY[i + 1];
+      if (h >= h0 && h <= h1) { const t = (h - h0) / (h1 - h0 || 1); return [mix(t0, t1, t), mix(b0, b1, t)]; }
+    }
+    return [SKY[0][1], SKY[0][2]];
+  }
+  function nightness(h) { if (h < 5 || h > 20.2) return 1; if (h < 7.5) return clamp((7.5 - h) / 2.5, 0, 1); if (h > 18) return clamp((h - 18) / 2.2, 0, 1); return 0; }
+  const STARS = (() => { const r = rng(42); return Array.from({ length: 70 }, () => [r(), r() * .7, r() * 1.2 + .3, r() * 6]); })();
+
+  // ---------- drawing ----------
+  let W = 0, H = 0, hover = -1, selected = -1, now = 0;
+  const dark = () => css('--bg').toLowerCase() === '#12171a';
+  function resize() {
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function leaf(x, y, ang, len, col) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(len * .5, -len * .38, len, 0);
+    ctx.quadraticCurveTo(len * .5, len * .38, 0, 0);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.restore();
+  }
+  function flower(x, y, r, petals, hue, open) {
+    if (open <= 0) return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(now / 9000);
+    const rr = r * open;
+    for (let i = 0; i < petals; i++) {
+      ctx.rotate(Math.PI * 2 / petals);
+      ctx.beginPath(); ctx.ellipse(rr * .62, 0, rr * .6, rr * .32, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `hsl(${hue} 70% 64% / .94)`; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(0, 0, rr * .28, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${(hue + 40) % 360} 85% 55%)`; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlant(p, i, x, ground, scale) {
+    const a = p.a || (p.a = analyse(p));
+    const r = rng(hash(p.text) ^ p.gaps.length);
+    const g = p.grow, n = a.words.length;
+    const speedT = clamp((a.wpm - 15) / 70, 0, 1);
+    const leafHue = 175 - speedT * 105;
+    const flowerHue = hash(p.text) % 360;
+    const lit = dark() ? 8 : 0;
+    let px = x, py = ground, ang = -Math.PI / 2;
+    const nodes = [];
+    const stemCol = `hsl(${leafHue} 32% ${34 + lit * 2}%)`;
+    ctx.lineCap = 'round';
+    for (let k = 0; k < n; k++) {
+      const segT = clamp(g * n - k, 0, 1);
+      if (segT <= 0) break;
+      const dev = (a.wt[k] - a.mean) / (a.mean || 1);
+      ang += clamp(dev * .55, -.5, .5) + (r() - .5) * .12;
+      if (!reduce) ang += Math.sin(now / 1500 + i * 1.7 + k * .45) * .018 * (k + 1) / Math.max(3, n);
+      ang = clamp(ang, -Math.PI + .5, -.5);
+      const len = (14 + a.words[k].length * 4.2) * scale * segT;
+      const nx = px + Math.cos(ang) * len, ny = py + Math.sin(ang) * len;
+      ctx.strokeStyle = stemCol; ctx.lineWidth = Math.max(1.2, (5 - k * .3) * scale);
+      ctx.beginPath(); ctx.moveTo(px, py);
+      ctx.quadraticCurveTo((px + nx) / 2 + (r() - .5) * 8 * scale, (py + ny) / 2, nx, ny); ctx.stroke();
+      px = nx; py = ny;
+      nodes.push({ x: px, y: py, ang, k, segT });
+    }
+    for (let b = 0; b < Math.min(p.backs || 0, 12); b++) {
+      if (!nodes.length) break;
+      const nd = nodes[Math.floor(r() * nodes.length)];
+      const side = r() < .5 ? -1 : 1, ta = nd.ang + side * 1.3;
+      ctx.strokeStyle = stemCol; ctx.lineWidth = 1.4 * scale;
+      ctx.beginPath(); ctx.moveTo(nd.x, nd.y); ctx.lineTo(nd.x + Math.cos(ta) * 7 * scale, nd.y + Math.sin(ta) * 7 * scale); ctx.stroke();
+    }
+    nodes.forEach((nd, j) => {
+      const side = j % 2 ? 1 : -1, w = a.words[nd.k];
+      const L = (8 + w.length * 2.2) * scale * nd.segT;
+      const flutter = reduce ? 0 : Math.sin(now / 900 + i + j) * .06;
+      leaf(nd.x, nd.y, nd.ang + side * (0.9 + r() * .4) + flutter, L, `hsl(${leafHue + (r() - .5) * 18} 45% ${42 + lit}% / .92)`);
+      if (w.length > 5) leaf(nd.x, nd.y, nd.ang - side * (1 + r() * .3) - flutter, L * .7, `hsl(${leafHue} 40% ${50 + lit}% / .88)`);
+    });
+    let blooms = 0;
+    nodes.forEach(nd => {
+      if (a.pre[nd.k] > 700) {
+        const open = clamp((g * n - nd.k - .4) * 2, 0, 1);
+        if (open > .5) blooms++;
+        const size = Math.min(16, 6 + a.pre[nd.k] / 180) * scale;
+        flower(nd.x, nd.y, size, 4 + (a.words[nd.k].length % 5), (flowerHue + nd.k * 23) % 360, open);
+      }
+    });
+    if (p.grow < 1 && blooms > (p.blooms || 0)) { try { navigator.vibrate && navigator.vibrate(12); } catch {} }
+    p.blooms = blooms;
+    if (g >= 1 && nodes.length) {
+      const top = nodes[nodes.length - 1];
+      ctx.beginPath(); ctx.arc(top.x, top.y, 2.6 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = `hsl(${leafHue} 50% 60%)`; ctx.fill();
+    }
+    const minY = nodes.length ? Math.min(...nodes.map(n => n.y)) - 20 : ground - 20;
+    p.box = { y0: minY, y1: ground };
+    if (p.gift) {
+      ctx.fillStyle = css('--bloom');
+      ctx.beginPath(); ctx.arc(x, ground + 12, 3, 0, Math.PI * 2); ctx.fill();
+    }
+    if (i === selected || i === hover) {
+      ctx.strokeStyle = '#fff'; ctx.globalAlpha = i === selected ? .9 : .5; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.ellipse(x, ground + 4, 22 * scale, 5 * scale, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+  }
+
+  function draw() {
+    const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+    const [top, bot] = skyAt(h), nf = nightness(h);
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, top); grad.addColorStop(1, bot);
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    const ground = H - 44;
+    if (nf > 0) STARS.forEach(([sx, sy, sr, ph]) => {
+      ctx.globalAlpha = nf * (.55 + .45 * Math.sin(now / 700 + ph));
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sx * W, sy * ground, sr, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    // sun or moon on an arc across the sky
+    const day = h >= 6 && h <= 19.5;
+    const t = day ? (h - 6) / 13.5 : ((h < 6 ? h + 24 : h) - 19.5) / 10.5;
+    const cx = W * (.08 + t * .84), cy = ground - Math.sin(Math.PI * t) * ground * .78 + 10;
+    ctx.beginPath(); ctx.arc(cx, cy, day ? 16 : 12, 0, Math.PI * 2);
+    ctx.fillStyle = day ? 'rgba(255,236,170,.95)' : 'rgba(240,240,255,.9)'; ctx.fill();
+    if (!day) { ctx.beginPath(); ctx.arc(cx + 5, cy - 3, 11, 0, Math.PI * 2); ctx.fillStyle = top; ctx.fill(); }
+    // soil
+    ctx.fillStyle = css('--soil');
+    ctx.beginPath(); ctx.moveTo(0, ground);
+    for (let x = 0; x <= W + 20; x += 20) ctx.lineTo(x, ground + Math.sin(x * .03) * 2);
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+    const n = plants.length || 1;
+    const scale = clamp(W / n / 95, .5, 1.25);
+    plants.forEach((p, i) => drawPlant(p, i, (i + .5) / n * W, ground, scale));
+    if (!plants.length) {
+      ctx.fillStyle = nf > .5 ? '#e4e9f5' : '#2c3830'; ctx.font = `15px ${css('--body')}`; ctx.textAlign = 'center';
+      ctx.fillText('Bare soil. Type something below to plant your first sentence.', W / 2, ground - 40, W - 32);
+    }
+    $('clock').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + (nf > .5 ? ' · night garden' : h < 9 ? ' · morning' : h > 17 ? ' · evening' : ' · daylight');
+  }
+
+  // ---------- loop ----------
+  let raf = 0;
+  function frame(ts) {
+    now = ts || performance.now();
+    for (const p of plants) if (p.grow < 1) p.grow = Math.min(1, p.grow + .012);
+    draw();
+    if (!reduce || plants.some(p => p.grow < 1)) raf = requestAnimationFrame(frame);
+  }
+  function kick() { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
+
+  // ---------- tag ----------
+  let replayToken = 0;
+  function showTag(i) {
+    replayToken++;
+    const p = plants[i];
+    if (!p) { tagEl.innerHTML = `<span class="eyebrow">Plant tag</span><h2>Nothing selected</h2><p class="hint">Click any plant to read its tag.</p>`; return; }
+    const a = p.a || (p.a = analyse(p));
+    const when = new Date(p.t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    tagEl.innerHTML = `
+      <span class="eyebrow">Plant tag · no. ${String(i + 1).padStart(2, '0')}</span>
+      <h2>${nameFor(a)}</h2>
+      <p class="quote" id="quote">“${esc(p.text)}”</p>
+      <dl>
+        <dt>Typing speed</dt><dd>${Math.round(a.wpm)} wpm</dd>
+        <dt>Avg key gap</dt><dd>${Math.round(a.mean)} ms</dd>
+        <dt>Longest pause</dt><dd>${(a.longest / 1000).toFixed(2)} s</dd>
+        <dt>Steadiness</dt><dd>${Math.round(a.steadiness * 100)}%</dd>
+        <dt>Flowers</dt><dd>${a.flowers}</dd>
+        <dt>Thorns</dt><dd>${p.backs || 0}</dd>
+        <dt>${p.gift ? 'Arrived' : 'Planted'}</dt><dd>${when}</dd>
+      </dl>
+      ${p.example ? '<span class="chip">Example plant</span>' : ''}${p.gift ? '<span class="chip gift">From a friend</span>' : ''}
+      <div class="tag-actions">
+        <button type="button" id="replay">▶ Replay typing</button>
+        <button type="button" id="send">Send this plant</button>
+        ${p.example ? '' : '<button type="button" id="uproot">Uproot</button>'}
+      </div>
+      <div class="sharebox" id="sharebox" hidden>
+        <label class="eyebrow" for="shareurl">Link for your friend</label>
+        <input id="shareurl" readonly>
+      </div>`;
+    $('replay').onclick = () => replay(i);
+    $('send').onclick = () => share(i);
+    if ($('uproot')) $('uproot').onclick = e => {
+      const b = e.currentTarget;
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Tap again to uproot'; return; }
+      plants.splice(i, 1); selected = Math.min(i, plants.length - 1); save(); showTag(selected); kick(); toast('Uprooted');
+    };
+  }
+
+  async function replay(i) {
+    const p = plants[i], q = $('quote'), my = ++replayToken;
+    ensureAudio();
+    const btn = $('replay'); btn.disabled = true;
+    for (let k = 0; k <= p.text.length; k++) {
+      if (my !== replayToken) return;
+      q.innerHTML = '“' + esc(p.text.slice(0, k)) + '<span class="caret"></span>';
+      if (k === p.text.length) break;
+      await new Promise(r => setTimeout(r, Math.min(p.gaps[k] || 0, 1800)));
+      if (my !== replayToken) return;
+      note(p.text[k], p.gaps[k] || 0, true);
+    }
+    q.textContent = '“' + p.text + '”'; btn.disabled = false;
+  }
+
+  // ---------- share links ----------
+  function encode(p) {
+    const json = JSON.stringify({ x: p.text, g: p.gaps.join('.'), b: p.backs || 0 });
+    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(s) {
+    try {
+      const json = decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
+      const o = JSON.parse(json);
+      const p = { text: String(o.x || ''), gaps: String(o.g || '').split('.').map(Number).map(g => clamp(g, 0, 10000)), backs: clamp(+o.b || 0, 0, 50), t: Date.now(), gift: true, grow: reduce ? 1 : 0 };
+      return valid(p) ? p : null;
+    } catch { return null; }
+  }
+  async function share(i) {
+    const url = location.href.split('#')[0] + '#plant=' + encode(plants[i]);
+    const box = $('sharebox'), field = $('shareurl');
+    field.value = url; box.hidden = false;
+    try {
+      if (navigator.share && matchMedia('(pointer: coarse)').matches) { await navigator.share({ title: 'A plant from my Cadence Garden', text: 'I grew this by typing. Open it to watch it grow:', url }); return; }
+      await navigator.clipboard.writeText(url); toast('Link copied. Paste it to a friend.');
+    } catch { field.focus(); field.select(); toast('Copy the link below'); }
+  }
+  function importFromHash() {
+    const m = location.hash.match(/^#plant=([A-Za-z0-9_-]+)$/);
+    if (!m) return false;
+    const p = decode(m[1]);
+    history.replaceState(null, '', location.pathname + location.search);
+    if (!p) { toast('That plant link is broken. Ask for a new one.'); return false; }
+    if (plants.some(x => x.text === p.text && x.gaps.join() === p.gaps.join())) { toast('That plant is already in your garden'); selected = plants.findIndex(x => x.text === p.text); return true; }
+    plants = plants.filter(x => !x.example); plants.push(p);
+    while (plants.length > MAX) plants.shift();
+    selected = plants.length - 1; save();
+    toast('A friend sent you a plant');
+    return true;
+  }
+  addEventListener('hashchange', () => { if (importFromHash()) { showTag(selected); kick(); } });
+
+  // ---------- picture ----------
+  $('snap').addEventListener('click', () => {
+    draw();
+    const out = document.createElement('canvas'); out.width = cv.width; out.height = cv.height;
+    const o = out.getContext('2d'); o.drawImage(cv, 0, 0);
+    const s = cv.width / W;
+    o.font = `${14 * s}px ${css('--display')}`; o.fillStyle = 'rgba(255,255,255,.85)'; o.textAlign = 'right';
+    o.fillText('Cadence Garden · ' + new Date().toLocaleDateString(), cv.width - 14 * s, cv.height - 14 * s);
+    out.toBlob(b => {
+      if (!b) { toast('Could not save the picture'); return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'my-cadence-garden.png';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Picture saved');
+    }, 'image/png');
+  });
+
+  // ---------- sound ----------
+  let audio = null, soundOn = false;
+  const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+  function ensureAudio() {
+    try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch {}
+  }
+  function note(ch, gap, force) {
+    if ((!soundOn && !force) || !audio) return;
+    const code = ch.toLowerCase().charCodeAt(0);
+    const deg = SCALE[(code * 7) % SCALE.length];
+    const f = 220 * Math.pow(2, deg / 12) * (ch === ' ' ? .5 : 1);
+    const o = audio.createOscillator(), gn = audio.createGain(), t = audio.currentTime;
+    o.type = 'triangle'; o.frequency.value = f;
+    const vol = Math.min(.14, .04 + gap / 6000);
+    gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(vol, t + .01);
+    gn.gain.exponentialRampToValueAtTime(.0001, t + .5 + Math.min(1.2, gap / 800));
+    o.connect(gn).connect(audio.destination); o.start(t); o.stop(t + 2);
+  }
+  $('sound').addEventListener('click', e => {
+    soundOn = !soundOn;
+    if (soundOn) ensureAudio();
+    e.currentTarget.setAttribute('aria-pressed', soundOn);
+    e.currentTarget.textContent = soundOn ? 'Sound on' : 'Sound off';
+  });
+
+  // ---------- typing capture (works with phone keyboards too) ----------
+  let gaps = [], last = 0, backs = 0;
+  function renderPulse() {
+    pulse.innerHTML = gaps.slice(-120).map(g => `<i class="${g > 700 ? 'long' : ''}" style="height:${clamp(g / 30, 2, 34)}px"></i>`).join('');
+  }
+  function reset() { gaps = []; last = 0; backs = 0; input.value = ''; renderPulse(); }
+  input.addEventListener('paste', e => { e.preventDefault(); hint.textContent = 'Pasted text has no rhythm. Type it yourself so it can grow.'; });
+  input.addEventListener('drop', e => e.preventDefault());
+  input.addEventListener('input', () => {
+    const t = performance.now();
+    let v = input.value;
+    const enter = v.includes('\n');
+    if (enter) { v = v.replace(/\n/g, ''); input.value = v; }
+    const d = v.length - gaps.length;
+    if (d < 0) { backs++; gaps.length = v.length; }
+    else if (d > 0) {
+      const g = last ? Math.round(t - last) : 0;
+      for (let k = 0; k < d; k++) gaps.push(gaps.length === 0 ? 0 : k === 0 ? g : 35); // autocorrect inserts arrive together
+      note(v[v.length - 1] || ' ', g);
+    }
+    last = t; renderPulse();
+    if (enter) plantIt();
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); plantIt(); } });
+  $('plant').addEventListener('click', plantIt);
+
+  function plantIt() {
+    const v = input.value, s = v.search(/\S/), e = v.trimEnd().length;
+    const text = s < 0 ? '' : v.slice(s, e);
+    if (text.split(/\s+/).filter(Boolean).length < 2) { hint.textContent = 'Give it at least two words so it has somewhere to grow.'; return; }
+    const g = gaps.slice(s, e); g[0] = 0;
+    const p = { text, gaps: g, backs, t: Date.now(), grow: reduce ? 1 : 0 };
+    plants = plants.filter(x => !x.example);
+    plants.push(p);
+    while (plants.length > MAX) plants.shift();
+    selected = plants.length - 1;
+    save(); showTag(selected); reset();
+    hint.textContent = 'Planted. Type another, or click a plant to replay or send it.';
+    kick();
+  }
+
+  // ---------- picking ----------
+  function pick(e) {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const n = plants.length; if (!n) return -1;
+    const i = clamp(Math.floor(x / (W / n)), 0, n - 1);
+    const b = plants[i] && plants[i].box;
+    return b && y >= b.y0 - 14 && y <= b.y1 + 40 ? i : -1;
+  }
+  cv.addEventListener('pointermove', e => { const h = pick(e); if (h !== hover) { hover = h; cv.style.cursor = h >= 0 ? 'pointer' : 'default'; if (reduce) draw(); } });
+  cv.addEventListener('pointerleave', () => { hover = -1; if (reduce) draw(); });
+  cv.addEventListener('click', e => { const i = pick(e); if (i >= 0) { selected = i; showTag(i); if (reduce) draw(); } });
+
+  $('clear').addEventListener('click', e => {
+    const b = e.currentTarget;
+    if (b.dataset.armed) { plants = []; selected = -1; save(); showTag(-1); kick(); b.textContent = 'Clear garden'; delete b.dataset.armed; return; }
+    b.dataset.armed = '1'; b.textContent = 'Tap again to clear';
+    setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = 'Clear garden'; } }, 3000);
+  });
+
+  // ---------- boot ----------
+  new ResizeObserver(() => { resize(); draw(); }).observe(cv);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => draw());
+  setInterval(() => { if (reduce) draw(); }, 60000);
+  resize();
+  const gifted = importFromHash();
+  if (!gifted) selected = plants.length - 1;
+  showTag(selected);
+  kick();
+})();
+</script>
+</body>
+</html>
